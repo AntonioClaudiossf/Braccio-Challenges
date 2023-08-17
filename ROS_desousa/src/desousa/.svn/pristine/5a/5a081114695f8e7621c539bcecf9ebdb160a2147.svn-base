@@ -1,0 +1,171 @@
+#!/usr/bin/env python               
+import rospy                            #inclut les librairies python
+from std_msgs.msg import Float64MultiArray       #   messages Float64MultiArray
+from aruco_msgs.msg import MarkerArray
+
+from braccio_challenge.msg import Cube
+from braccio_challenge.msg import ListeCubes
+
+import math
+import numpy as np
+
+
+# Creation et initialisation de message
+
+msg_robot1 = Float64MultiArray() #definition du type de message
+msg_robot2 = Float64MultiArray() #definition du type de message
+
+msg_camera1 = Float64MultiArray() #definition du type de message
+msg_camera2 = Float64MultiArray() #definition du type de message
+
+msg_robot1.data = [0.5,0.5,2.0,1.5,1.0,0]
+msg_robot2.data = [0.0,1.57,0.0,0.0,0.0,1.0]
+
+
+
+msg_camera2.data = [-0.4,0.3,0.5,0.5]
+
+msg_cube = ListeCubes()
+un_seul_cube = Cube()
+un_seul_cube.id = 42
+un_seul_cube.x = 24
+un_seul_cube.y = 8
+un_seul_cube.z = 16
+
+liste_cubes = ListeCubes()
+
+num_cube = []
+x_cube = []
+y_cube = []
+z_cube = []
+
+
+def RotZ(q1):
+    
+    rotz = np.matrix([math.cos(q1), -math.sin(q1), 0, 0],
+                 [math.sin(q1), math.cos(q1), 0,0],
+                 [0, 0, 1, 0],
+                 [0, 0, 0, 1])
+    return rotz
+
+
+def RotY(q3):
+    
+    roty = np.matrix([math.cos(q3),  0, math.sin(q3), 0],
+                     [0, 1, 0, 0],
+                     [-math.sin(q3), 0, math.cos(q3), 0],
+                     [0, 0, 0, 1],)
+    return roty
+
+
+
+def RotX(q2):
+    
+    rotx = np.matrix([1, 0, 0, 0],
+                     [0,math.cos(q2), -math.sin(q2), 0],
+                     [0, math.sin(q2), math.cos(q2), 0, 0],
+                     [0, 0, 0, 1])
+    return rotx
+
+
+def Transformation(r,p,y,x,y1,z):
+    
+    cr = math.cos(r); 
+    sr = math.sin(r);
+    cp = math.cos(p); 
+    sp = math.sin(p);
+    cy = math.cos(y); 
+    sy = math.sin(y);
+    
+    
+    transform =  np.matrix( [cy*cp, -sy*sr+cy*sp*sr, cy*sp*cr+sy*sr, x],
+                        [sy*cp, sy*sp*sr+cy*cr, -cy*sr+sy*sp*cr, y1],
+                        [-sp, cp*sr, cp*cr, z],
+                        [0, 0, 0, 1])
+    
+    return transform
+
+
+
+
+
+
+
+
+# definition de la fonction qui recoit les infos d'aruco
+
+def callbackAruco(msg):   
+    global liste_cubes
+    for i in range(0, len(msg.markers)):
+        if (msg.markers[i].id)/10 not in num_cube:
+            num_cube.append((msg.markers[i].id)/10)
+            
+            x_cube.append(msg.markers[i].pose.pose.position.x)
+            y_cube.append(msg.markers[i].pose.pose.position.y)
+            z_cube.append(msg.markers[i].pose.pose.position.z)
+            
+            #T01 = Transformation(0,0,math.pi,0,0,0)*RotZ(msg_camera1.data[0])
+            #T12 = RotX(msg_camera1.data[1])
+            #T23 = RotZ(msg_camera1.data[2])
+            #T34 = Transformation(0,0,math.pi,0,0,0)*RotY(msg_camera1.data[3])
+            
+           # pos = T01*T12*T23*T34*np.matrix([msg.markers[i].pose.pose.position.x,
+                                             #msg.markers[i].pose.pose.position.y,
+                                             #msg.markers[i].pose.pose.position.z,1])
+            #print("pos",pos)
+            #x_cube.append(pos[0])
+            #y_cube.append(pos[1])
+            #z_cube.append(pos[2])
+            
+        
+    liste_cubes=  ListeCubes()
+    for i in range(0,len(num_cube)):
+        cube = Cube()
+        cube.id = num_cube[i]
+        cube.x = x_cube[i]
+        cube.y = y_cube[i]
+        cube.z = z_cube[i]
+        
+        
+        liste_cubes.cubes.append(cube)
+    
+
+rospy.init_node('publisher_camera')   #initialisation du noeud et affectation d'un nom
+
+
+# definition de trois publishers et d'un subscriber
+
+pub_cube = rospy.Publisher('/cube_presents', ListeCubes, queue_size=10)     
+pub_robot = rospy.Publisher('/braccio_arm/joint_angles', Float64MultiArray, queue_size=10)     
+pub_camera = rospy.Publisher('/braccio_arm/camera_joint_angles', Float64MultiArray, queue_size=10) 
+rospy.Subscriber("/aruco_marker_publisher/markers", MarkerArray, callbackAruco)
+                                                        
+rate = rospy.Rate(10)                       #definit la frequence d envoie 10Hz
+
+# variable utile juste pour l'exemple
+x = 0.0
+rotz = 0.5
+tranx = 0.8
+tranz = 0.5
+roty = 0.5
+
+msg_camera1.data = [0.5,0.5,0.5,0.5]
+
+while not rospy.is_shutdown():         #tant que ros est en fonctionnement   
+    
+    #pub_robot.publish(msg_robot1)
+   #rospy.sleep(2.)
+    pub_camera.publish(msg_camera1)
+    #pub_robot.publish(msg_robot2)
+    rospy.sleep(2.)
+    
+    msg_camera1.data[0] = rotz
+    msg_camera1.data[1] = tranx
+    msg_camera1.data[2] = tranz
+    msg_camera1.data[3] = roty
+    pub_camera.publish(msg_camera1)
+    rotz = rotz+0.2
+    pub_cube.publish(liste_cubes)
+    
+    rate.sleep()                       # a remettre apres exemple
+    

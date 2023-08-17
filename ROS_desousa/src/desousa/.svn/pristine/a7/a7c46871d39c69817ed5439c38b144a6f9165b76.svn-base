@@ -1,0 +1,3 @@
+<launch>
+<node pkg="desousa_challenge" type="Challenge3.py" name="Toucher_un_objet"/>
+</launch>

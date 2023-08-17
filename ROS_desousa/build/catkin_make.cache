@@ -1,0 +1,2 @@
+desousa/desousa_challenge
+-DCATKIN_DEVEL_PREFIX=/home/ubuntu/Bureau/ROS_desousa/devel -DCMAKE_INSTALL_PREFIX=/home/ubuntu/Bureau/ROS_desousa/install -G Unix Makefiles

@@ -1,0 +1,85 @@
+#!/usr/bin/env python               
+import rospy                            #inclut les librairies python
+from std_msgs.msg import Float64MultiArray       #   messages Float64MultiArray
+from aruco_msgs.msg import MarkerArray
+
+from braccio_challenge.msg import Cube
+from braccio_challenge.msg import ListeCubes
+
+
+# Creation et initialisation de message
+
+msg_robot1 = Float64MultiArray() #definition du type de message
+msg_robot2 = Float64MultiArray() #definition du type de message
+
+msg_camera1 = Float64MultiArray() #definition du type de message
+msg_camera2 = Float64MultiArray() #definition du type de message
+
+msg_robot1.data = [0.0,0.0,0.0,0.0,0.0,0]
+
+msg_robot2.data = [0.0,1.5,1.57,1.5,0.0,0.0]
+
+msg_camera1.data = [0.5,0.5,0.5,0.5]
+msg_camera2.data = [-0.4,0.3,0.5,0.5]
+
+msg_cube = ListeCubes()
+un_seul_cube = Cube()
+un_seul_cube.id = 42
+un_seul_cube.x = 24
+un_seul_cube.y = 8
+un_seul_cube.z = 16
+
+msg_cube.cubes.append(un_seul_cube)
+
+
+# definition de la fonction qui recoit les infos d'aruco
+
+def callbackAruco(msg):    
+    for i in range(0, len(msg.markers)):
+        print("marqueur ", i)
+        print(" id = ", msg.markers[i].id) 
+        print(" x = ", msg.markers[i].pose.pose.position.x)
+        print(" y = ", msg.markers[i].pose.pose.position.y)
+        print(" z = ", msg.markers[i].pose.pose.position.z)
+        
+
+rospy.init_node('publisher_camera')   #initialisation du noeud et affectation d'un nom
+
+
+# definition de trois publishers et d'un subscriber
+
+pub_cube = rospy.Publisher('/result', ListeCubes, queue_size=10)     
+pub_robot = rospy.Publisher('/braccio_arm/joint_angles', Float64MultiArray, queue_size=10)     
+pub_camera = rospy.Publisher('/braccio_arm/camera_joint_angles', Float64MultiArray, queue_size=10) 
+rospy.Subscriber("/aruco_marker_publisher/markers", MarkerArray, callbackAruco)
+                                                        
+rate = rospy.Rate(10)                       #definit la frequence d envoie 10Hz
+
+# variable utile juste pour l'exemple
+pub_camera.publish(msg_camera1)
+
+while not rospy.is_shutdown():         #tant que ros est en fonctionnement   
+    msg_robot2.data = [0.0,1.5,1.57,1.57,0.0,0.0]
+    pub_robot.publish(msg_robot2)
+    rospy.sleep(4.)
+    msg_robot2.data = [0.0,0.0,1.4,1.57,0.0,0.0]
+
+    pub_robot.publish(msg_robot2)
+    rospy.sleep(4.)
+    msg_robot2.data = [3.14,0.0,1.4,1.57,0.0,0.0]
+    pub_robot.publish(msg_robot2)
+    rospy.sleep(4.)
+    msg_robot2.data = [3.14,3.14,1.8,1.57,0.0,0.0]
+    pub_robot.publish(msg_robot2)
+    rospy.sleep(4.)
+    msg_robot2.data = [0.0,3.14,1.8,1.57,0.0,0.0]
+    pub_robot.publish(msg_robot2)
+    rospy.sleep(4.)
+    #x = x+0.1
+    #msg_camera1.data[1] = x
+   
+    #pub_cube.publish(msg_cube)
+    
+    rate.sleep()                       # a remettre apres exemple
+    
+

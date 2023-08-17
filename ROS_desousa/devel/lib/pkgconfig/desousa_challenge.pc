@@ -1,0 +1,8 @@
+prefix=/home/ubuntu/Bureau/ROS_desousa/devel
+
+Name: desousa_challenge
+Description: Description of desousa_challenge
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

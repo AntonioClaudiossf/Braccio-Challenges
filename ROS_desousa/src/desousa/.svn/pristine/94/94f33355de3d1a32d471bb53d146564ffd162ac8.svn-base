@@ -1,0 +1,95 @@
+#!/usr/bin/env python               
+import rospy                            #inclut les librairies python
+from std_msgs.msg import Float64MultiArray       #   messages Float64MultiArray
+from aruco_msgs.msg import MarkerArray
+
+from braccio_challenge.msg import Cube
+from braccio_challenge.msg import ListeCubes
+
+
+# Creation et initialisation de message
+
+msg_robot1 = Float64MultiArray() #definition du type de message
+msg_robot2 = Float64MultiArray() #definition du type de message
+
+msg_camera1 = Float64MultiArray() #definition du type de message
+msg_camera2 = Float64MultiArray() #definition du type de message
+
+msg_robot1.data = [0.5,0.5,2.0,1.5,1.0,0]
+msg_robot2.data = [0.0,1.57,0.0,0.0,0.0,1.0]
+
+
+
+msg_camera2.data = [-0.4,0.3,0.5,0.5]
+
+msg_cube = ListeCubes()
+un_seul_cube = Cube()
+un_seul_cube.id = 42
+un_seul_cube.x = 24
+un_seul_cube.y = 8
+un_seul_cube.z = 16
+
+liste_cubes = ListeCubes()
+
+num_cube = []
+
+
+
+
+
+# definition de la fonction qui recoit les infos d'aruco
+
+def callbackAruco(msg):   
+    global liste_cubes
+    for i in range(0, len(msg.markers)):
+        if (msg.markers[i].id)/10 not in num_cube:
+            num_cube.append((msg.markers[i].id)/10)
+            
+        
+    liste_cubes=  ListeCubes()
+    for i in num_cube:
+        cube = Cube()
+        cube.id = i
+        
+        liste_cubes.cubes.append(cube)
+    
+
+rospy.init_node('publisher_camera')   #initialisation du noeud et affectation d'un nom
+
+
+# definition de trois publishers et d'un subscriber
+
+pub_cube = rospy.Publisher('/cube_presents', ListeCubes, queue_size=10)     
+pub_robot = rospy.Publisher('/braccio_arm/joint_angles', Float64MultiArray, queue_size=10)     
+pub_camera = rospy.Publisher('/braccio_arm/camera_joint_angles', Float64MultiArray, queue_size=10) 
+rospy.Subscriber("/aruco_marker_publisher/markers", MarkerArray, callbackAruco)
+                                                        
+rate = rospy.Rate(10)                       #definit la frequence d envoie 10Hz
+
+# variable utile juste pour l'exemple
+x = 0.0
+rotz = 0.5
+tranx = 0.8
+tranz = 0.5
+roty = 0.5
+
+msg_camera1.data = [0.5,0.5,0.5,0.5]
+
+while not rospy.is_shutdown():         #tant que ros est en fonctionnement   
+    
+    #pub_robot.publish(msg_robot1)
+   #rospy.sleep(2.)
+    pub_camera.publish(msg_camera1)
+    #pub_robot.publish(msg_robot2)
+    rospy.sleep(2.)
+    
+    msg_camera1.data[0] = rotz
+    msg_camera1.data[1] = tranx
+    msg_camera1.data[2] = tranz
+    msg_camera1.data[3] = roty
+    pub_camera.publish(msg_camera1)
+    rotz = rotz+0.2
+    pub_cube.publish(liste_cubes)
+    
+    rate.sleep()                       # a remettre apres exemple
+    
